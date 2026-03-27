@@ -1,0 +1,70 @@
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+struct node {
+  int64_t value;
+  struct node *next;
+};
+
+void print_int(int64_t v) {
+  printf("%lld ", v);
+  fflush(NULL);
+}
+
+int p(int64_t v) { return v & 1; }
+
+struct node *add_element(int64_t value, struct node *next) {
+  struct node *n = malloc(sizeof(struct node));
+  if (!n)
+    abort();
+  n->value = value;
+  n->next = next;
+  return n;
+}
+
+void m(struct node *list, void (*func)(int64_t)) {
+  if (!list)
+    return;
+  func(list->value);
+  m(list->next, func);
+}
+
+struct node *f(struct node *list, struct node *acc, int (*pred)(int64_t)) {
+  if (!list)
+    return acc;
+  if (pred(list->value))
+    acc = add_element(list->value, acc);
+  return f(list->next, acc, pred);
+}
+
+void free_list(struct node *list) {
+  while (list) {
+    struct node *tmp = list->next;
+    free(list);
+    list = tmp;
+  }
+}
+
+int main(void) {
+  int64_t data[] = {4, 8, 15, 16, 23, 42};
+  int data_length = sizeof(data) / sizeof(data[0]);
+
+  // build linked list by prepending from the end
+  struct node *list = NULL;
+  for (int i = data_length; i > 0; i--) {
+    list = add_element(data[i - 1], list);
+  }
+  // Print all
+  m(list, print_int);
+  puts("");
+
+  // Filter odd elements
+  struct node *filtered = f(list, NULL, p);
+  m(filtered, print_int);
+  puts("");
+
+  // Fix memory leaks
+  free_list(list);
+  free_list(filtered);
+}
