@@ -34,21 +34,21 @@ static size_t write_callback(void *contents, size_t size, size_t nmemb,
 }
 
 static char *fetch_weather(const char *city) {
-	CURL *curl;
+	CURL *curl = NULL;
 	CURLcode res;
-	struct response resp = { NULL, 0 };
+	struct response resp = { 0 };
+	char *result = NULL;
 
 	curl = curl_easy_init ();
 	if (!curl) {
 		fprintf (stderr, "Error: failed to initialize libcurl\n");
-		return NULL;
+		goto cleanup;
 	}
 
 	char *escaped_city = curl_easy_escape (curl, city, 0);
 	if (!escaped_city) {
 		fprintf (stderr, "Error: failed to encode city name\n");
-		curl_easy_cleanup (curl);
-		return NULL;
+		goto cleanup;
 	}
 
 	char url[URL_MAX_LEN];
@@ -57,8 +57,7 @@ static char *fetch_weather(const char *city) {
 	curl_free (escaped_city);
 	if (written < 0 || (size_t)written >= sizeof (url)) {
 		fprintf (stderr, "Error: city name too long\n");
-		curl_easy_cleanup (curl);
-		return NULL;
+		goto cleanup;
 	}
 
 	curl_easy_setopt (curl, CURLOPT_URL, url);
@@ -72,22 +71,25 @@ static char *fetch_weather(const char *city) {
 	if (res != CURLE_OK) {
 		fprintf (stderr, "Error: network request failed: %s\n",
 			curl_easy_strerror (res));
-		free (resp.data);
-		curl_easy_cleanup (curl);
-		return NULL;
+		goto cleanup;
 	}
 
 	long http_code = 0;
 	curl_easy_getinfo (curl, CURLINFO_RESPONSE_CODE, &http_code);
-	curl_easy_cleanup (curl);
 
 	if (http_code != 200) {
 		fprintf (stderr, "Error: server returned HTTP %ld\n", http_code);
-		free (resp.data);
-		return NULL;
+		goto cleanup;
 	}
 
-	return resp.data;
+	result = resp.data;
+	resp.data = NULL;
+
+cleanup:
+	free (resp.data);
+	if (curl)
+		curl_easy_cleanup (curl);
+	return result;
 }
 
 static const char *json_string(const cJSON *obj, const char *key) {
@@ -164,18 +166,18 @@ static int print_weather(const char *json_str, const char *city) {
 int main(int argc, char *argv[]) {
 	if (argc != 2) {
 		fprintf (stderr, "Usage: %s <city>\n", argv[0]);
-		return 1;
+		exit (EXIT_FAILURE);
 	}
 
 	const char *city = argv[1];
 
 	char *json_str = fetch_weather (city);
 	if (!json_str) {
-		return 1;
+		exit (EXIT_FAILURE);
 	}
 
 	int result = print_weather (json_str, city);
 	free (json_str);
 
-	return result;
+	exit (result == 0 ? EXIT_SUCCESS : EXIT_FAILURE);
 }
