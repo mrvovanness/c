@@ -1,20 +1,19 @@
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 struct node {
-  int64_t value;
+  long value;
   struct node *next;
 };
 
-void print_int(int64_t v) {
-  printf("%lld ", v);
+void print_int(long v) {
+  printf("%ld ", v);
   fflush(NULL);
 }
 
-int p(int64_t v) { return v & 1; }
+int p(long v) { return v & 1; }
 
-struct node *add_element(int64_t value, struct node *next) {
+struct node *add_element(long value, struct node *next) {
   struct node *n = malloc(sizeof(struct node));
   if (!n)
     abort();
@@ -23,14 +22,14 @@ struct node *add_element(int64_t value, struct node *next) {
   return n;
 }
 
-void m(struct node *list, void (*func)(int64_t)) {
+void m(struct node *list, void (*func)(long)) {
   if (!list)
     return;
   func(list->value);
   m(list->next, func);
 }
 
-struct node *f(struct node *list, struct node *acc, int (*pred)(int64_t)) {
+struct node *f(struct node *list, struct node *acc, int (*pred)(long)) {
   if (!list)
     return acc;
   if (pred(list->value))
@@ -47,7 +46,7 @@ void free_list(struct node *list) {
 }
 
 int main(void) {
-  int64_t data[] = {4, 8, 15, 16, 23, 42};
+  long data[] = {4, 8, 15, 16, 23, 42};
   int data_length = sizeof(data) / sizeof(data[0]);
 
   // build linked list by prepending from the end
