@@ -38,11 +38,10 @@ struct node *f(struct node *list, struct node *acc, int (*pred)(long)) {
 }
 
 void free_list(struct node *list) {
-  while (list) {
-    struct node *tmp = list->next;
-    free(list);
-    list = tmp;
-  }
+  if (!list)
+    return;
+  free_list(list->next);
+  free(list);
 }
 
 int main(void) {
