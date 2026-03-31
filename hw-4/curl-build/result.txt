@@ -1,0 +1,7 @@
+=========================================
+  Build complete. Verifying:
+=========================================
+curl 8.19.0 (aarch64-apple-darwin25.3.0) libcurl/8.19.0 OpenSSL/3.6.1 zlib/1.2.12
+Release-Date: 2026-03-11
+Protocols: http https telnet
+Features: alt-svc AsynchDNS HSTS HTTPS-proxy IPv6 Largefile libz NTLM SSL threadsafe TLS-SRP UnixSockets
