@@ -500,12 +500,19 @@ clib_package_t *clib_package_new(const char *json, int verbose) {
       for (unsigned int i = 0; i < json_array_get_count(flags); i++) {
         char *flag = json_array_get_string_safe(flags, i);
         if (flag) {
-          if (!pkg->flags) {
-            pkg->flags = "";
-          }
+          char *old_flags = pkg->flags;
 
-          if (-1 == asprintf(&pkg->flags, "%s %s", pkg->flags, flag)) {
-            goto cleanup;
+          if (!old_flags) {
+            if (-1 == asprintf(&pkg->flags, " %s", flag)) {
+              free(flag);
+              goto cleanup;
+            }
+          } else {
+            if (-1 == asprintf(&pkg->flags, "%s %s", old_flags, flag)) {
+              free(flag);
+              goto cleanup;
+            }
+            free(old_flags);
           }
 
           free(flag);
@@ -664,6 +671,9 @@ clib_package_new_from_slug_with_package_name(const char *slug, int verbose,
       json = res->data;
       _debug("status: %d", res->status);
       if (!res || !res->ok) {
+        http_get_free(res);
+        res = NULL;
+        json = NULL;
         goto download;
       }
       log = "fetch";
@@ -710,8 +720,9 @@ clib_package_new_from_slug_with_package_name(const char *slug, int verbose,
     } else {
       free(author);
     }
-  } else {
-    pkg->author = strdup(author);
+  } else if (author) {
+    free(pkg->author);
+    pkg->author = author;
   }
 
   if (!(repo = clib_package_repo(pkg->author, pkg->name))) {
@@ -1099,6 +1110,7 @@ int clib_package_install_executable(clib_package_t *pkg, char *dir,
     if (verbose) {
       logger_error("error", "repo field required to install executable");
     }
+    free(tmp);
     return -1;
   }
 
@@ -1110,6 +1122,7 @@ int clib_package_install_executable(clib_package_t *pkg, char *dir,
       logger_error("error",
                    "malformed repo field, must be in the form user/pkg");
     }
+    free(tmp);
     return -1;
   }
 
@@ -1213,7 +1226,10 @@ int clib_package_install_executable(clib_package_t *pkg, char *dir,
       asprintf(&flags, "%s", pkg->flags);
     }
 
-    setenv("CFLAGS", cflags, 1);
+    if (flags) {
+      setenv("CFLAGS", flags, 1);
+      free(flags);
+    }
   }
 
   E_FORMAT(&command, "cd %s && %s", unpack_dir, pkg->install);
@@ -1227,6 +1243,8 @@ cleanup:
   free(tarball);
   free(file);
   free(url);
+  free(unpack_dir);
+  free(deps);
   return rc;
 }
 
@@ -1380,7 +1398,9 @@ int clib_package_install(clib_package_t *pkg, const char *dir, int verbose) {
 #ifdef HAVE_PTHREADS
     pthread_mutex_lock(&lock.mutex);
 #endif
-    hash_set(visited_packages, strdup(pkg->name), "t");
+    if (!hash_has(visited_packages, pkg->name)) {
+      hash_set(visited_packages, strdup(pkg->name), "t");
+    }
 #ifdef HAVE_PTHREADS
     pthread_mutex_unlock(&lock.mutex);
 #endif
@@ -1489,7 +1509,7 @@ download:
       while (--i >= 0) {
         fetch_package_file_thread_data_t *data = fetchs[i];
         int *status = 0;
-        pthread_join(data->thread, (void **)status);
+        pthread_join(data->thread, (void **)&status);
         free(data);
         fetchs[i] = NULL;
 
@@ -1519,7 +1539,7 @@ download:
     fetch_package_file_thread_data_t *data = fetchs[i];
     int *status = 0;
 
-    pthread_join(data->thread, (void **)status);
+    pthread_join(data->thread, (void **)&status);
 
     (void)pending--;
     free(data);
@@ -1660,6 +1680,7 @@ void clib_package_free(clib_package_t *pkg) {
   FREE(url);
   FREE(version);
   FREE(flags);
+  FREE(prefix);
 #undef FREE
 
   if (pkg->src)
