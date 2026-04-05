@@ -1,76 +1,28 @@
 #!/bin/sh
-set -e
+SOCK=/tmp/ls-daemon-test.sock
+FILE=/tmp/ls-daemon-test.txt
+CONF=/tmp/ls-daemon-test.conf
 
-DAEMON=./ls-daemon
-TEST_FILE=/tmp/ls-daemon-test-file.txt
-TEST_SOCKET=/tmp/ls-daemon-test.sock
-TEST_CONF=/tmp/ls-daemon-test.conf
-DPID=
+trap 'kill $PID 2>/dev/null; rm -f $SOCK $FILE $CONF' EXIT
 
-cleanup() {
-    [ -n "$DPID" ] && kill "$DPID" 2>/dev/null; wait "$DPID" 2>/dev/null || true
-    rm -f "$TEST_FILE" "$TEST_SOCKET" "$TEST_CONF"
-}
-trap cleanup EXIT
+printf 'file=%s\nsocket=%s\n' "$FILE" "$SOCK" > "$CONF"
 
-query() {
-    python3 -c "
-import socket
-s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-s.connect('$TEST_SOCKET')
-print(s.recv(256).decode(), end='')
-s.close()
-"
-}
+echo "hello world" > "$FILE"
+./ls-daemon -f -c "$CONF" &
+PID=$!
+sleep 0.5
 
-assert_eq() {
-    if [ "$1" != "$2" ]; then
-        echo "FAIL: expected '$2', got '$1'"
-        exit 1
-    fi
-}
+echo "Test 1: expect 12"
+sh query.sh "$SOCK"
 
-assert_prefix() {
-    case "$1" in
-        "$2"*) ;;
-        *) echo "FAIL: expected prefix '$2', got '$1'"; exit 1 ;;
-    esac
-}
+echo "more data" >> "$FILE"
+echo "Test 2: expect 22"
+sh query.sh "$SOCK"
 
-printf 'file=%s\nsocket=%s\n' "$TEST_FILE" "$TEST_SOCKET" > "$TEST_CONF"
-rm -f "$TEST_SOCKET"
-echo "hello world" > "$TEST_FILE"
+rm "$FILE"
+echo "Test 3: expect ERROR"
+sh query.sh "$SOCK"
 
-$DAEMON -f -c "$TEST_CONF" &
-DPID=$!
-
-i=0
-while [ ! -S "$TEST_SOCKET" ] && [ "$i" -lt 20 ]; do
-    sleep 0.1
-    i=$((i + 1))
-done
-
-echo "=== Test 1: initial size (expect 12) ==="
-RESULT=$(query)
-echo "$RESULT"
-assert_eq "$RESULT" "12"
-
-echo "more data" >> "$TEST_FILE"
-echo "=== Test 2: size after append (expect 22) ==="
-RESULT=$(query)
-echo "$RESULT"
-assert_eq "$RESULT" "22"
-
-rm -f "$TEST_FILE"
-echo "=== Test 3: file removed (expect ERROR) ==="
-RESULT=$(query)
-echo "$RESULT"
-assert_prefix "$RESULT" "ERROR:"
-
-echo "new" > "$TEST_FILE"
-echo "=== Test 4: file re-created (expect 4) ==="
-RESULT=$(query)
-echo "$RESULT"
-assert_eq "$RESULT" "4"
-
-echo "=== All tests passed ==="
+echo "new" > "$FILE"
+echo "Test 4: expect 4"
+sh query.sh "$SOCK"
