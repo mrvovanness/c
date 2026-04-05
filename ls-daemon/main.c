@@ -28,8 +28,10 @@ static int config_load(const char *path, struct config *cfg)
 
     while (fgets(line, (int)sizeof(line), fp)) {
         size_t len = strlen(line);
-        if (len > 0 && line[len - 1] == '\n')
-            line[--len] = '\0';
+        if (len > 0 && line[len - 1] == '\n') {
+            len = len - 1;
+            line[len] = '\0';
+        }
         if (len == 0 || line[0] == '#')
             continue;
 
