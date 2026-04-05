@@ -1,21 +1,12 @@
-CC      = gcc
-CFLAGS  = -Wall -Wextra -Wpedantic -std=c11
-TARGET  = ls-daemon
-SRCS    = main.c config.c daemon.c server.c
-OBJS    = $(SRCS:.c=.o)
+CFLAGS = -Wall -Wextra -Wpedantic -std=c11
 
-all: $(TARGET)
+ls-daemon: main.c
+	$(CC) $(CFLAGS) -o $@ $<
 
-$(TARGET): $(OBJS)
-	$(CC) $(CFLAGS) -o $@ $(OBJS)
-
-%.o: %.c
-	$(CC) $(CFLAGS) -c -o $@ $<
-
-test: $(TARGET)
+test: ls-daemon
 	@sh test.sh
 
 clean:
-	rm -f $(OBJS) $(TARGET)
+	rm -f ls-daemon
 
-.PHONY: all clean test
+.PHONY: test clean

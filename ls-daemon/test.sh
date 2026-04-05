@@ -8,7 +8,7 @@ TEST_CONF=/tmp/ls-daemon-test.conf
 DPID=
 
 cleanup() {
-    [ -n "$DPID" ] && kill "$DPID" 2>/dev/null && wait "$DPID" 2>/dev/null
+    [ -n "$DPID" ] && kill "$DPID" 2>/dev/null; wait "$DPID" 2>/dev/null || true
     rm -f "$TEST_FILE" "$TEST_SOCKET" "$TEST_CONF"
 }
 trap cleanup EXIT
