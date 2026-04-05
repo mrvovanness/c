@@ -11,15 +11,13 @@
 
 static volatile sig_atomic_t g_running = 1;
 
-static void
-on_signal(int sig)
+static void on_signal(int sig)
 {
     (void)sig;
     g_running = 0;
 }
 
-static void
-usage(const char *prog)
+static void usage(const char *prog)
 {
     fprintf(stderr, "Usage: %s [-f] -c <config>\n", prog);
     fprintf(stderr, "  -c <config>  path to configuration file\n");

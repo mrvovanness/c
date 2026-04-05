@@ -4,8 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
-int
-config_load(const char *path, struct config *cfg)
+int config_load(const char *path, struct config *cfg)
 {
     FILE *fp = fopen(path, "r");
     if (!fp) {

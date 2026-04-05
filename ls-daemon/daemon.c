@@ -5,8 +5,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-int
-daemonize(void)
+int daemonize(void)
 {
     pid_t pid = fork();
     if (pid < 0) {
@@ -35,8 +34,7 @@ daemonize(void)
         return -1;
     }
 
-    if (dup2(devnull, STDIN_FILENO) < 0 ||
-        dup2(devnull, STDOUT_FILENO) < 0 ||
+    if (dup2(devnull, STDIN_FILENO) < 0 || dup2(devnull, STDOUT_FILENO) < 0 ||
         dup2(devnull, STDERR_FILENO) < 0) {
         perror("dup2");
         close(devnull);

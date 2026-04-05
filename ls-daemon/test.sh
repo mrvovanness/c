@@ -44,10 +44,11 @@ echo "hello world" > "$TEST_FILE"
 $DAEMON -f -c "$TEST_CONF" &
 DPID=$!
 
-# while true; do
-#     sleep 30
-# done
-sleep 0.3
+i=0
+while [ ! -S "$TEST_SOCKET" ] && [ "$i" -lt 20 ]; do
+    sleep 0.1
+    i=$((i + 1))
+done
 
 echo "=== Test 1: initial size (expect 12) ==="
 RESULT=$(query)

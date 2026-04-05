@@ -8,8 +8,7 @@
 #include <sys/un.h>
 #include <unistd.h>
 
-int
-server_listen(const struct config *cfg)
+int server_listen(const struct config *cfg)
 {
     int fd = socket(AF_UNIX, SOCK_STREAM, 0);
     if (fd < 0) {
@@ -39,8 +38,7 @@ server_listen(const struct config *cfg)
     return fd;
 }
 
-int
-server_handle_client(int listen_fd, const struct config *cfg)
+int server_handle_client(int listen_fd, const struct config *cfg)
 {
     int client_fd = accept(listen_fd, NULL, NULL);
     if (client_fd < 0) {
@@ -54,8 +52,8 @@ server_handle_client(int listen_fd, const struct config *cfg)
     struct stat st;
 
     if (stat(cfg->file_path, &st) < 0) {
-        int n = snprintf(buf, sizeof(buf), "ERROR: %s: %s\n",
-                         cfg->file_path, strerror(errno));
+        int n = snprintf(buf, sizeof(buf), "ERROR: %s: %s\n", cfg->file_path,
+                         strerror(errno));
         if (n > 0)
             (void)write(client_fd, buf, (size_t)n);
     } else {
