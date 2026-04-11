@@ -3,11 +3,11 @@
 
 #define CRC32_POLYNOMIAL 0xEDB88320U
 
-static uint32_t crc32_table[256];
+static unsigned int crc32_table[256] = {0};
 
 static void build_crc32_table(void) {
     for (int i = 0; i < 256; i++) {
-        uint32_t crc = (uint32_t)i;
+        int crc = i;
 
         for (int bit = 0; bit < 8; bit++) {
             if (crc & 1) {
