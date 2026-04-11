@@ -1,19 +1,20 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#define CRC32_POLYNOMIAL 0xEDB88320U
+static const uint32_t CRC32_POLYNOMIAL = 0xEDB88320U;// значение для полимона, используемого в алгоритме CRC32
 
-static unsigned int crc32_table[256] = {0};
-
+// Таблица для хранения предвычисленных значений CRC32 для всех возможных байтов (0-255)
+static uint32_t crc32_table[256] = {0};
 static void build_crc32_table(void) {
-    for (int i = 0; i < 256; i++) {
-        int crc = i;
+    for (uint32_t i = 0; i < 256; i++) {
+        uint32_t crc = i;
 
         for (int bit = 0; bit < 8; bit++) {
-            if (crc & 1) {
+            if (crc & 1) { // Если младший бит установлен, применяем полином
+
                 crc = (crc >> 1) ^ CRC32_POLYNOMIAL;
             } else {
-                crc >>= 1;
+                crc >>= 1; // Иначе просто сдвигаем вправо
             }
         }
 
