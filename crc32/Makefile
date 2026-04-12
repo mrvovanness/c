@@ -12,4 +12,4 @@ $(TARGET): crc32.c
 	$(CC) $(CFLAGS) -o $@ $<
 
 clean:
-	rm -f crc32-*
+	rm -rf crc32-*
