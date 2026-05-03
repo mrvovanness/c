@@ -15,7 +15,7 @@ typedef struct {
     size_t      url_len;
     const char *referer;
     size_t      referer_len;
-    uint64_t    bytes;      /* 0 if the size field was '-' */
+    uint64_t    bytes_sent;      /* 0 if the size field was '-' */
 } log_entry_t;
 
 /*
