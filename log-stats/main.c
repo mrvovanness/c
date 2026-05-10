@@ -202,20 +202,9 @@ struct worker_ctx {
 };
 
 /*
- * TODO: реализовать.
- *
- * Один поток-обработчик.  Цикл: брать путь из очереди и вызывать
- * process_file(path, c->urls, c->refs), пока next_file не вернёт NULL.
- *
- *   struct worker_ctx *c = arg;
- *   const char *path;
- *   while ((path = next_file(c->queue)) != NULL) {
- *       (void)process_file(path, c->urls, c->refs);
- *   }
- *   return NULL;
- *
- * Возвращаемое значение нам не нужно — результат накопится в c->urls
- * и c->refs, главный поток заберёт их после pthread_join.
+ * Один поток-обработчик.  Берёт путь из очереди и обрабатывает файл,
+ * пока очередь не опустеет.  Результат накапливается в c->urls / c->refs;
+ * главный поток заберёт их после pthread_join через stats_merge.
  */
 static void* worker(void* arg) {
     struct worker_ctx* c = arg;
@@ -250,32 +239,38 @@ static void print_results(stats_table_t* urls, stats_table_t* refs) {
 }
 
 int main(int argc, char* argv[]) {
-    int rc = EXIT_FAILURE;
-    int nthreads = 0;
-    char** files = NULL;
-    size_t n_files = 0;
-    stats_table_t* urls = NULL;
-    stats_table_t* refs = NULL;
+    int                rc        = EXIT_FAILURE;
+    int                nthreads  = 0;
+    char**             files     = NULL;
+    size_t             n_files   = 0;
+    stats_table_t*     urls      = NULL;
+    stats_table_t*     refs      = NULL;
+    pthread_t*         tids      = NULL;
+    struct worker_ctx* ctxs      = NULL;
+    int                ctxs_made = 0;  /* сколько ctxs[i] полностью инициализировано */
+    int                spawned   = 0;  /* сколько потоков реально запущено */
+    struct file_queue  q         = { .mu = PTHREAD_MUTEX_INITIALIZER };
 
     if (argc != 3) {
         fprintf(stderr, "Usage: %s <log_dir> <nthreads>\n", argv[0]);
         goto out;
     }
-    const char* dir = argv[1];
-
     if (parse_nthreads(argv[2], &nthreads) < 0) {
-        fprintf(stderr, "invalid nthreads: '%s' (expected 1..%d)\n", argv[2],
-                MAX_THREADS);
+        fprintf(stderr, "invalid nthreads: '%s' (expected 1..%d)\n",
+                argv[2], MAX_THREADS);
         goto out;
     }
-
-    if (collect_files(dir, &files, &n_files) < 0) goto out;
+    if (collect_files(argv[1], &files, &n_files) < 0) goto out;
 
     if (n_files == 0) {
-        printf("Directory '%s' contains no files — nothing to process.\n", dir);
+        printf("Directory '%s' contains no files — nothing to process.\n",
+               argv[1]);
         rc = EXIT_SUCCESS;
         goto out;
     }
+
+    /* нет смысла запускать больше потоков, чем есть файлов */
+    if ((size_t)nthreads > n_files) nthreads = (int)n_files;
 
     urls = stats_create();
     refs = stats_create();
@@ -284,81 +279,62 @@ int main(int argc, char* argv[]) {
         goto out;
     }
 
-    /*
-     * TODO: заменить однопоточный проход на пул потоков.
-     *
-     *  1. Если n_files < nthreads — урезать nthreads до n_files.
-     *  2. Заинициализировать struct file_queue:
-     *       q.files=files; q.n_files=n_files; q.idx=0;
-     *       pthread_mutex_init(&q.mu, NULL);
-     *  3. pthread_t          *tids = calloc(nthreads, sizeof(*tids));
-     *     struct worker_ctx  *ctxs = calloc(nthreads, sizeof(*ctxs));
-     *     для каждого ctxs[i]: queue=&q, urls=stats_create(),
-     * refs=stats_create().
-     *  4. for i in 0..nthreads:
-     *       pthread_create(&tids[i], NULL, worker, &ctxs[i]);
-     *     если pthread_create вернул != 0 — fail (или урезать nthreads до
-     * уже созданного).
-     *  5. for i in 0..nthreads: pthread_join(tids[i], NULL).
-     *  6. for i in 0..nthreads:
-     *       stats_merge(urls, ctxs[i].urls);
-     *       stats_merge(refs, ctxs[i].refs);
-     *       stats_destroy(ctxs[i].urls); stats_destroy(ctxs[i].refs);
-     *     (общие urls/refs уже созданы выше пустыми — аккумулируем в них.)
-     *  7. pthread_mutex_destroy(&q.mu);
-     *     free(tids); free(ctxs);
-     */
-    if (n_files < (size_t)nthreads) nthreads = (int)n_files;
-    struct file_queue q = {
-        .files = files,
-        .n_files = n_files,
-        .idx = 0,
-        .mu = PTHREAD_MUTEX_INITIALIZER,
-    };
+    q.files   = files;
+    q.n_files = n_files;
+    q.idx     = 0;
 
-    pthread_t* tids = calloc(nthreads, sizeof(*tids));
-    struct worker_ctx* ctxs = calloc(nthreads, sizeof(*ctxs));
-
+    tids = calloc((size_t)nthreads, sizeof(*tids));
+    ctxs = calloc((size_t)nthreads, sizeof(*ctxs));
     if (!tids || !ctxs) {
         fprintf(stderr, "out of memory\n");
         goto out;
     }
-    for (int w_ctx = 0; w_ctx < nthreads; ++w_ctx) {
-        ctxs[w_ctx].queue = &q;
-        ctxs[w_ctx].urls = stats_create();
-        ctxs[w_ctx].refs = stats_create();
-        if (!ctxs[w_ctx].urls || !ctxs[w_ctx].refs) {
+
+    for (int i = 0; i < nthreads; ++i) {
+        ctxs[i].queue = &q;
+        ctxs[i].urls  = stats_create();
+        ctxs[i].refs  = stats_create();
+        if (!ctxs[i].urls || !ctxs[i].refs) {
             fprintf(stderr, "out of memory\n");
             goto out;
         }
+        ctxs_made = i + 1;
     }
+
     for (int i = 0; i < nthreads; ++i) {
         int err = pthread_create(&tids[i], NULL, worker, &ctxs[i]);
         if (err != 0) {
             fprintf(stderr, "pthread_create: %s\n", strerror(err));
-            nthreads = i;
             break;
         }
+        spawned = i + 1;
     }
-    for (int i = 0; i < nthreads; ++i) {
+
+    for (int i = 0; i < spawned; ++i) {
         pthread_join(tids[i], NULL);
         stats_merge(urls, ctxs[i].urls);
         stats_merge(refs, ctxs[i].refs);
+    }
+
+    /* если хоть один worker отработал — данные полные (очередь общая) */
+    if (spawned > 0) {
+        print_results(urls, refs);
+        rc = EXIT_SUCCESS;
+    }
+
+out:
+    for (int i = 0; i < ctxs_made; ++i) {
         stats_destroy(ctxs[i].urls);
         stats_destroy(ctxs[i].refs);
     }
-    pthread_mutex_destroy(&q.mu);
     free(tids);
     free(ctxs);
-
-    print_results(urls, refs);
-    rc = EXIT_SUCCESS;
-out:
+    pthread_mutex_destroy(&q.mu);
     stats_destroy(urls);
     stats_destroy(refs);
     if (files) {
         for (size_t i = 0; i < n_files; ++i) free(files[i]);
         free(files);
     }
-    exit(rc);
+    return rc;
 }
