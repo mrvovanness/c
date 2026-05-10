@@ -20,12 +20,16 @@ parser.o: parser.c parser.h
 stats.o: stats.c stats.h
 	$(CC) $(CFLAGS) -c stats.c -o stats.o
 
-test: $(BIN) tests/test_parser
+test: $(BIN) tests/test_parser tests/test_stats
 	./tests/test_parser
+	./tests/test_stats
 
 tests/test_parser: tests/parser_test.c parser.o
 	$(CC) $(CFLAGS) tests/parser_test.c parser.o -o tests/test_parser
 
+tests/test_stats: tests/stats_test.c stats.o
+	$(CC) $(CFLAGS) tests/stats_test.c stats.o -o tests/test_stats
+
 clean:
 	rm -f *.o $(BIN)
-	rm -f tests/test_parser
+	rm -f tests/test_parser tests/test_stats
