@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "stats.h"
+#include "util.h"
 
 /*
  * Хеш-таблица с открытой адресацией и линейным пробированием.
@@ -140,9 +141,9 @@ stats_table_t* stats_create(void) {
 void stats_destroy(stats_table_t* t) {
     if (!t) return;
     for (size_t i = 0; i < t->capacity; ++i) {
-        free(t->buckets[i].key);
+        FREE_NULL(t->buckets[i].key);
     }
-    free(t->buckets);
+    FREE_NULL(t->buckets);
     free(t);
 }
 

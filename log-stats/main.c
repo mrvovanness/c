@@ -11,6 +11,7 @@
 
 #include "parser.h"
 #include "stats.h"
+#include "util.h"
 
 #define MAX_PATH_LEN 4096
 #define MAX_THREADS 1024
@@ -171,10 +172,10 @@ static int process_file(const char* path, stats_table_t* urls,
  * stats_add блокировок не требует.
  */
 struct file_queue {
-    char** files;
-    size_t n_files;
-    size_t idx; /* индекс следующего невзятого файла */
-    pthread_mutex_t mu;
+    pthread_mutex_t mu;      /* первым полем — структура для многопоточки */
+    char**          files;
+    size_t          n_files;
+    size_t          idx;     /* индекс следующего невзятого файла */
 };
 
 /*
@@ -226,7 +227,7 @@ static void print_results(stats_table_t* urls, stats_table_t* refs) {
     for (size_t i = 0; i < n; ++i) {
         printf("  %2zu. %12" PRIu64 " bytes  %s\n", i + 1, top[i].bytes,
                top[i].key);
-        free(top[i].key);
+        FREE_NULL(top[i].key);
     }
 
     printf("\nTop %d Referers by request count:\n", TOP_N);
@@ -234,7 +235,7 @@ static void print_results(stats_table_t* urls, stats_table_t* refs) {
     for (size_t i = 0; i < n; ++i) {
         printf("  %2zu. %12" PRIu64 " requests  %s\n", i + 1, top[i].count,
                top[i].key);
-        free(top[i].key);
+        FREE_NULL(top[i].key);
     }
 }
 
