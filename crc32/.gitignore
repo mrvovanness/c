@@ -1,0 +1,4 @@
+crc32
+crc32-*
+*.dSYM/
+file.7z file.bin .DS_Store
