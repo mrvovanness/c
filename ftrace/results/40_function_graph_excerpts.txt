@@ -1,0 +1,95 @@
+Выдержки из 20_function_graph.trace (полный файл — 17678 строк).
+Трассировщик function_graph показывает дерево вызовов функций ВНУТРИ ядра
+и длительность каждой функции в микросекундах (колонка DURATION).
+
+===================================================================
+(A) getpid(): полный путь обработки системного вызова на arm64
+    el0_svc -> invoke_syscall -> __arm64_sys_getpid, всего 2.167 мкс
+===================================================================
+   68.278352 |   0)  syscall-2351  |               |  do_el0_svc() {
+   68.278352 |   0)  syscall-2351  |               |    el0_svc_common.constprop.0() {
+   68.278352 |   0)  syscall-2351  |               |      invoke_syscall.constprop.0() {
+   68.278352 |   0)  syscall-2351  |               |        __arm64_sys_getpid() {
+   68.278352 |   0)  syscall-2351  |               |          __task_pid_nr_ns() {
+   68.278353 |   0)  syscall-2351  |   0.125 us    |            __rcu_read_lock();
+   68.278353 |   0)  syscall-2351  |   0.166 us    |            __rcu_read_unlock();
+   68.278353 |   0)  syscall-2351  |   0.708 us    |          }
+   68.278353 |   0)  syscall-2351  |   0.958 us    |        }
+   68.278353 |   0)  syscall-2351  |   0.125 us    |        get_random_u16();
+   68.278354 |   0)  syscall-2351  |   1.625 us    |      }
+   68.278354 |   0)  syscall-2351  |   1.875 us    |    }
+   68.278354 |   0)  syscall-2351  |   2.167 us    |  }
+
+===================================================================
+(B) write() в файл на tmpfs: слой VFS + проверка прав SELinux
+    (показано начало поддерева; целиком вызов занял десятки мкс)
+===================================================================
+   68.278632 |   0)  syscall-2351  |               |        __arm64_sys_write() {
+   68.278632 |   0)  syscall-2351  |               |          ksys_write() {
+   68.278632 |   0)  syscall-2351  |   0.167 us    |            fdget_pos();
+   68.278633 |   0)  syscall-2351  |               |            vfs_write() {
+   68.278633 |   0)  syscall-2351  |               |              rw_verify_area() {
+   68.278633 |   0)  syscall-2351  |               |                security_file_permission() {
+   68.278633 |   0)  syscall-2351  |               |                  selinux_file_permission() {
+   68.278633 |   0)  syscall-2351  |   0.125 us    |                    avc_policy_seqno();
+   68.278633 |   0)  syscall-2351  |   0.375 us    |                  }
+   68.278634 |   0)  syscall-2351  |   0.125 us    |                  bpf_lsm_file_permission();
+   68.278634 |   0)  syscall-2351  |   0.958 us    |                }
+   68.278635 |   0)  syscall-2351  |   1.208 us    |              }
+   68.278635 |   0)  syscall-2351  |   0.125 us    |              dynamic_might_resched();
+   68.278635 |   0)  syscall-2351  |               |              shmem_file_write_iter() {
+   68.278635 |   0)  syscall-2351  |               |                down_write() {
+   68.278635 |   0)  syscall-2351  |   0.125 us    |                  dynamic_might_resched();
+   68.278636 |   0)  syscall-2351  |   0.417 us    |                }
+   68.278636 |   0)  syscall-2351  |               |                generic_write_checks() {
+   68.278636 |   0)  syscall-2351  |   0.167 us    |                  generic_write_check_limits();
+   68.278636 |   0)  syscall-2351  |   0.500 us    |                }
+   68.278637 |   0)  syscall-2351  |               |                file_remove_privs() {
+   68.278638 |   0)  syscall-2351  |               |                  file_remove_privs_flags() {
+   68.278638 |   0)  syscall-2351  |   0.167 us    |                    setattr_should_drop_suidgid();
+   68.278638 |   0)  syscall-2351  |               |                    security_inode_need_killpriv() {
+   68.278638 |   0)  syscall-2351  |               |                      cap_inode_need_killpriv() {
+   68.278639 |   0)  syscall-2351  |               |                        __vfs_getxattr() {
+   68.278639 |   0)  syscall-2351  |   0.417 us    |                          xattr_resolve_name();
+   68.278640 |   0)  syscall-2351  |               |                          shmem_xattr_handler_get() {
+   68.278640 |   0)  syscall-2351  |   0.125 us    |                            xattr_full_name();
+   68.278640 |   0)  syscall-2351  |               |                            simple_xattr_get() {
+   68.278640 |   0)  syscall-2351  |   0.125 us    |                              _raw_read_lock();
+   68.278640 |   0)  syscall-2351  |   0.125 us    |                              _raw_read_unlock();
+   68.278641 |   0)  syscall-2351  |   0.709 us    |                            }
+   68.278641 |   0)  syscall-2351  |   1.250 us    |                          }
+   68.278641 |   0)  syscall-2351  |   2.375 us    |                        }
+   68.278641 |   0)  syscall-2351  |   2.625 us    |                      }
+   68.278641 |   0)  syscall-2351  |   0.125 us    |                      bpf_lsm_inode_need_killpriv();
+   68.278641 |   0)  syscall-2351  |   3.208 us    |                    }
+   68.278642 |   0)  syscall-2351  |   4.000 us    |                  }
+                          [...] далее shmem: выделение страницы, dquot, копирование данных [...]
+
+===================================================================
+(C) nanosleep(): постановка hrtimer и уход процесса в сон (schedule)
+    именно здесь возникает пауза ~20 мс между событиями в трассе
+===================================================================
+   68.278850 |   0)  syscall-2351  |               |        __arm64_sys_nanosleep() {
+   68.278850 |   0)  syscall-2351  |   0.250 us    |          get_timespec64();
+   68.278851 |   0)  syscall-2351  |               |          hrtimer_nanosleep() {
+   68.278851 |   0)  syscall-2351  |               |            hrtimer_setup_sleeper_on_stack() {
+   68.278851 |   0)  syscall-2351  |   0.166 us    |              __hrtimer_setup();
+   68.278851 |   0)  syscall-2351  |   0.416 us    |            }
+   68.278852 |   0)  syscall-2351  |               |            do_nanosleep() {
+   68.278852 |   0)  syscall-2351  |               |              hrtimer_start_range_ns() {
+   68.278852 |   0)  syscall-2351  |   0.125 us    |                _raw_spin_lock_irqsave();
+   68.278852 |   0)  syscall-2351  |               |                __hrtimer_start_range_ns() {
+   68.278852 |   0)  syscall-2351  |               |                  __hrtimer_cb_get_time() {
+   68.278852 |   0)  syscall-2351  |               |                    ktime_get() {
+   68.278853 |   0)  syscall-2351  |   0.125 us    |                      arch_counter_read();
+   68.278853 |   0)  syscall-2351  |   0.417 us    |                    }
+   68.278853 |   0)  syscall-2351  |   0.708 us    |                  }
+   68.278854 |   0)  syscall-2351  |               |                  get_nohz_timer_target() {
+   68.278854 |   0)  syscall-2351  |   0.125 us    |                    idle_cpu();
+   68.278854 |   0)  syscall-2351  |   0.417 us    |                  }
+   68.278854 |   0)  syscall-2351  |   0.250 us    |                  enqueue_hrtimer();
+   68.278855 |   0)  syscall-2351  |   2.375 us    |                }
+   68.278855 |   0)  syscall-2351  |   0.125 us    |                _raw_spin_unlock_irqrestore();
+   68.278855 |   0)  syscall-2351  |   3.167 us    |              }
+   68.278855 |   0)  syscall-2351  |               |              schedule() {
+   68.278855 |   0)  syscall-2351  |               |                rcu_note_context_switch() {

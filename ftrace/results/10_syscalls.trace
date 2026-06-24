@@ -1,0 +1,58 @@
+# tracer: nop
+#
+# entries-in-buffer/entries-written: 46/46   #P:2
+#
+#                                _-----=> irqs-off/BH-disabled
+#                               / _----=> need-resched
+#                              | / _---=> hardirq/softirq
+#                              || / _--=> preempt-depth
+#                              ||| / _-=> migrate-disable
+#                              |||| /     delay
+#           TASK-PID     CPU#  |||||  TIMESTAMP  FUNCTION
+#              | |         |   |||||     |         |
+    syscall_demo-2349    [000] .....    67.978035: sys_write -> 0x2
+    syscall_demo-2349    [000] .....    67.978037: sys_dup3(oldfd: 0xa, newfd: 1, flags: 0)
+    syscall_demo-2349    [000] .....    67.978037: sys_dup3 -> 0x1
+    syscall_demo-2349    [000] .....    67.978038: sys_fcntl(fd: 0xa, cmd: 1, arg: 0)
+    syscall_demo-2349    [000] .....    67.978038: sys_fcntl -> 0x1
+    syscall_demo-2349    [000] .....    67.978039: sys_close(fd: 0xa)
+    syscall_demo-2349    [000] .....    67.978039: sys_close -> 0x0
+    syscall_demo-2349    [000] .....    67.978049: sys_rt_sigaction(sig: 2, act: 0xffffcf605f68, oact: 0xffffcf606000, sigsetsize: 8)
+    syscall_demo-2349    [000] .....    67.978050: sys_rt_sigaction -> 0x0
+    syscall_demo-2349    [000] .....    67.978050: sys_rt_sigaction(sig: 3, act: 0xffffcf605f68, oact: 0xffffcf606000, sigsetsize: 8)
+    syscall_demo-2349    [000] .....    67.978050: sys_rt_sigaction -> 0x0
+    syscall_demo-2349    [000] .....    67.978051: sys_rt_sigaction(sig: 0x11, act: 0xffffcf605f68, oact: 0xffffcf606000, sigsetsize: 8)
+    syscall_demo-2349    [000] .....    67.978051: sys_rt_sigaction -> 0x0
+    syscall_demo-2349    [000] .....    67.978052: sys_execve(filename: 0xaaaaf6666b40 "/var/roothome/ftrace/syscall_demo", argv: 0xaaaaf6665270, envp: 0xaaaaf6662d60)
+    syscall_demo-2349    [000] .....    67.978137: sys_execve -> 0x0
+    syscall_demo-2349    [000] .....    67.978154: sys_set_tid_address(tidptr: 0xffffbd210870)
+    syscall_demo-2349    [000] .....    67.978154: sys_set_tid_address -> 0x92d
+    syscall_demo-2349    [000] .....    67.978155: sys_getpid()
+    syscall_demo-2349    [000] .....    67.978155: sys_getpid -> 0x92d
+    syscall_demo-2349    [000] .....    67.978158: sys_ioctl(fd: 1, cmd: 0x5413, arg: 0xffffe2889618)
+    syscall_demo-2349    [000] .....    67.978158: sys_ioctl -> 0xffffffffffffffe7
+    syscall_demo-2349    [000] .....    67.978159: sys_writev(fd: 1, vec: 0xffffe28895e0, vlen: 2)
+    syscall_demo-2349    [000] .....    67.978169: sys_writev -> 0x12
+    syscall_demo-2349    [000] .....    67.978170: sys_newuname(name: 0xffffe2889b60)
+    syscall_demo-2349    [000] .....    67.978170: sys_newuname -> 0x0
+    syscall_demo-2349    [000] .....    67.978172: sys_openat(dfd: 18446744073709551516, filename: 281473854699360 "/tmp/ftrace_demo.txt", flags: O_RDWR|O_CREAT|O_TRUNC|O_LARGEFILE, mode: 0644)
+    syscall_demo-2349    [000] .....    67.978280: sys_openat -> 0x3
+    syscall_demo-2349    [000] .....    67.978281: sys_write(fd: 3, buf: 0xffffbd1f7780 (66:74:72:61:63:65:20:73:79:73:63:61:6c:6c:20:64:65:6d:6f:3a:20:68:65:6c:6c:6f:2c:20:6b:65:72:6e:65:6c:21:0a) "ftrace syscall demo: hello, kernel!.", count: 0x24)
+    syscall_demo-2349    [000] .....    67.978287: sys_write -> 0x24
+    syscall_demo-2349    [000] .....    67.978288: sys_fsync(fd: 3)
+    syscall_demo-2349    [000] .....    67.978289: sys_fsync -> 0x0
+    syscall_demo-2349    [000] .....    67.978289: sys_lseek(fd: 3, offset: 0, whence: 0)
+    syscall_demo-2349    [000] .....    67.978289: sys_lseek -> 0x0
+    syscall_demo-2349    [000] .....    67.978290: sys_read(fd: 3, buf: 0xffffe2889ce8, count: 0x7f)
+    syscall_demo-2349    [000] .....    67.978291: sys_read -> 0x24
+    syscall_demo-2349    [000] .....    67.978291: sys_close(fd: 3)
+    syscall_demo-2349    [000] .....    67.978292: sys_close -> 0x0
+    syscall_demo-2349    [000] .....    67.978292: sys_newfstatat(dfd: 0xffffffffffffff9c, filename: 0xffffbd1f7760 "/tmp/ftrace_demo.txt", statbuf: 0xffffe2889a30, flag: 0)
+    syscall_demo-2349    [000] .....    67.978293: sys_newfstatat -> 0x0
+    syscall_demo-2349    [000] .....    67.978294: sys_unlinkat(dfd: 0xffffffffffffff9c, pathname: 0xffffbd1f7760 "/tmp/ftrace_demo.txt", flag: 0)
+    syscall_demo-2349    [000] .....    67.978306: sys_unlinkat -> 0x0
+    syscall_demo-2349    [000] .....    67.978307: sys_nanosleep(rqtp: 0xffffe2889ad0, rmtp: 0)
+    syscall_demo-2349    [000] .....    67.998530: sys_nanosleep -> 0x0
+    syscall_demo-2349    [000] .....    67.998534: sys_writev(fd: 1, vec: 0xffffe2889d00, vlen: 2)
+    syscall_demo-2349    [000] .....    67.998541: sys_writev -> 0xba
+    syscall_demo-2349    [000] .....    67.998542: sys_exit_group(error_code: 0)

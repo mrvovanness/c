@@ -1,0 +1,16 @@
+### uname -a
+Linux localhost.localdomain 7.0.9-205.fc44.aarch64 #1 SMP PREEMPT_DYNAMIC Thu May 21 16:34:10 UTC 2026 aarch64 GNU/Linux
+
+### tracefs mountpoint: /sys/kernel/tracing
+
+### available_tracers
+timerlat osnoise hwlat blk function_graph wakeup_dl wakeup_rt wakeup function nop
+
+### current_tracer (по умолчанию)
+nop
+
+### tracing_on
+1
+
+### число доступных событий syscalls
+324
