@@ -1,0 +1,25 @@
+Источник: results/10_syscalls.trace
+
+Всего перехвачено системных вызовов (событий входа): 23
+
+КОЛ-ВО  СИСТЕМНЫЙ ВЫЗОВ
+------  ---------------
+     3  rt_sigaction
+     2  writev
+     2  close
+     1  write
+     1  unlinkat
+     1  set_tid_address
+     1  read
+     1  openat
+     1  newuname
+     1  newfstatat
+     1  nanosleep
+     1  lseek
+     1  ioctl
+     1  getpid
+     1  fsync
+     1  fcntl
+     1  exit_group
+     1  execve
+     1  dup3

@@ -1,0 +1,4 @@
+[demo] pid = 2349
+[demo] kernel = Linux 7.0.9-205.fc44.aarch64 (aarch64)
+[demo] file size = 36 bytes
+[demo] done: прочитано 36 байт, содержимое: ftrace syscall demo: hello, kernel!
